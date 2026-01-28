@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ClientProvider } from "@/context/ClientContext";
-import { AuthProvider } from "@/context/AuthContext";
+// import { ClientProvider } from "@/context/ClientContext";
+// import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 import Providers from "@/providers/react-query-provider";
 
@@ -32,10 +32,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <AuthProvider>
-            <Toaster />
-            <ClientProvider>{children}</ClientProvider>
-          </AuthProvider>
+          {/* <AuthProvider> */}
+          <Toaster />
+          {/* <ClientProvider> */}
+          {children}
+          {/* </ClientProvider> */}
+          {/* </AuthProvider> */}
         </Providers>
       </body>
     </html>

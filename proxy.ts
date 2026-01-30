@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { tokenExists } from "./lib/helpers";
 
 const PROTECTED_ROUTES = ["/", "/analytics", "/clients", "/settings"];
 
-const proxy = async (req: NextRequest) => {
-  const userStatus = await tokenExists();
-  const currentRoute = req.nextUrl.pathname;
-  if (currentRoute === "/login" && userStatus) {
+export default function middleware(req: NextRequest) {
+  const token = req.cookies.get("accessToken")?.value;
+  const pathname = req.nextUrl.pathname;
+
+  // Logged in user should not see login
+  if (pathname === "/login" && token) {
     return NextResponse.redirect(new URL("/", req.url));
   }
-  if (PROTECTED_ROUTES.includes(currentRoute) && !userStatus) {
+
+  // Protected route without token
+  if (PROTECTED_ROUTES.includes(pathname) && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
-};
 
-export default proxy;
+  return NextResponse.next();
+}

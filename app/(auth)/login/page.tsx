@@ -150,7 +150,7 @@ const Login: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label>Sign in as</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -182,7 +182,7 @@ const Login: React.FC = () => {
                   </div>
                 </button>
               </div>
-            </div>
+            </div> */}
 
             <Button
               type="submit"

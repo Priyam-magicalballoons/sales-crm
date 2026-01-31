@@ -18,7 +18,7 @@ export interface Client {
   userId?: string;
   creator_name?: string;
   notes?: string;
-  createdAt?: Date;
+  createdAt: Date;
   updatedAt?: Date | null;
 }
 

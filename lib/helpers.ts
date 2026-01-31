@@ -24,20 +24,6 @@ export const getCurrentUser = cache(async () => {
   return userData[0];
 });
 
-export const tokenExists = async () => {
-  try {
-    const token = (await cookies()).get("accessToken")?.value;
-
-    // console.log(token);
-    if (!token) {
-      return false;
-    }
-    return true;
-  } catch (error: any) {
-    return false;
-  }
-};
-
 export const logout = async () => {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;

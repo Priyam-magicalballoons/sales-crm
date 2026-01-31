@@ -2,6 +2,7 @@ import {
   pgTable,
   serial,
   text,
+  integer,
   timestamp,
   uuid,
   boolean,
@@ -54,12 +55,13 @@ export const client = pgTable("clients", {
   company: text("company"),
   email: text("email"),
   phone: text("phone"),
-  deal_value: text("deal_value"),
+  deal_value: integer("deal_value"),
   stage: text("stage").default("LEAD"),
   notes: text(""),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id),
+  creator_name: text("creator_name"),
   createdAt: timestamp("created_at", {
     withTimezone: true,
   }).defaultNow(),

@@ -15,6 +15,20 @@
       "when": 1769081768414,
       "tag": "0001_hot_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769495512762,
+      "tag": "0002_nappy_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769665558912,
+      "tag": "0003_kind_mac_gargan",
+      "breakpoints": true
     }
   ]
 }

@@ -52,7 +52,6 @@ export const verifyToken = async () => {
   `;
 
   if (deleted.length === 0) {
-    // Already used / expired / parallel refresh
     cookieStore.delete("accessToken");
     cookieStore.delete("refreshToken");
 

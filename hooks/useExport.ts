@@ -1,6 +1,6 @@
 import { Client, STAGES } from "@/types/crm";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { RowInput } from "jspdf-autotable";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("en-US", {
@@ -85,7 +85,7 @@ export const useExport = () => {
 
     autoTable(doc, {
       head: [["Name", "Company", "Deal Value", "Stage", "Assigned To"]],
-      body: tableData,
+      body: tableData as RowInput[],
       startY: 42,
       styles: {
         fontSize: 9,

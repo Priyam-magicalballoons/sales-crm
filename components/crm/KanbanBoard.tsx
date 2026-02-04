@@ -25,10 +25,19 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Loader from "../Loader";
 import ErrorCard from "../ErrorCard";
+import {
+  MonthYearFilter,
+  MonthYearSelection,
+  matchesMonthYearFilter,
+} from "@/components/MonthYearFilter";
 
 const KanbanBoard: React.FC = () => {
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [monthYearFilter, setMonthYearFilter] = useState<MonthYearSelection>({
+    month: null,
+    year: new Date().getFullYear(),
+  });
   const router = useRouter();
 
   class ApiError extends Error {
@@ -146,18 +155,25 @@ const KanbanBoard: React.FC = () => {
   /* ---------------- Filtering ---------------- */
 
   const filteredClients = useMemo(() => {
-    if (!searchQuery.trim()) return clients;
-
-    const query = searchQuery.toLowerCase();
-
-    return clients?.filter((client) => {
-      return (
-        client.name?.toLowerCase().includes(query) ||
-        client.company?.toLowerCase().includes(query) ||
-        client.email?.toLowerCase().includes(query)
+    let result = clients;
+    // Filter by month/year
+    result = result.filter((client) =>
+      matchesMonthYearFilter(
+        new Date(client.updatedAt || client.createdAt),
+        monthYearFilter,
+      ),
+    );
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (client) =>
+          client.name?.toLowerCase().includes(query) ||
+          client.company?.toLowerCase().includes(query) ||
+          client.email?.toLowerCase().includes(query),
       );
-    });
-  }, [clients, searchQuery]);
+    }
+    return result;
+  }, [clients, searchQuery, monthYearFilter]);
 
   /* ---------------- Group by Stage ---------------- */
   const clientsByStage = useMemo(() => {
@@ -215,16 +231,16 @@ const KanbanBoard: React.FC = () => {
 
   /* ---------------- Stats ---------------- */
   const totalDealValue = useMemo(() => {
-    return clients
+    return filteredClients
       .filter((c) => c.stage !== "lost")
       .reduce((sum, c) => sum + Number(c.deal_value ?? 0), 0);
-  }, [clients]);
+  }, [filteredClients]);
 
   const wonValue = useMemo(() => {
-    return clients
+    return filteredClients
       .filter((c) => c.stage === "won")
       .reduce((sum, c) => sum + Number(c.deal_value ?? 0), 0);
-  }, [clients]);
+  }, [filteredClients]);
 
   /* ---------------- Render ---------------- */
   if (isPending) {
@@ -256,7 +272,7 @@ const KanbanBoard: React.FC = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Stat label="Total Deals" value={clients.length} />
+        <Stat label="Total Deals" value={filteredClients.length} />
         <Stat
           label="Pipeline Value"
           value={`₹${totalDealValue.toLocaleString()}`}
@@ -269,10 +285,10 @@ const KanbanBoard: React.FC = () => {
         <Stat
           label="Win Rate"
           value={`${
-            clients.length
+            filteredClients.length
               ? Math.round(
-                  (clients.filter((c) => c.stage === "won").length /
-                    clients.length) *
+                  (filteredClients.filter((c) => c.stage === "won").length /
+                    filteredClients.length) *
                     100,
                 )
               : 0
@@ -281,7 +297,7 @@ const KanbanBoard: React.FC = () => {
       </motion.div>
 
       {/* Search */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center flex-wrap gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -291,6 +307,10 @@ const KanbanBoard: React.FC = () => {
             className="pl-10"
           />
         </div>
+        <MonthYearFilter
+          value={monthYearFilter}
+          onChange={setMonthYearFilter}
+        />
       </div>
 
       {/* Board */}

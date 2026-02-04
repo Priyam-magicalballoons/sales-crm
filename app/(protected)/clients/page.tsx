@@ -138,10 +138,6 @@ const Clients: React.FC = () => {
     },
   });
 
-  if (isPending) {
-    return <Loader loadingText="Loading Clients" />;
-  }
-
   const handleSort = (field: SortField) => {
     setSortConfig((prev) => ({
       field,
@@ -261,6 +257,10 @@ const Clients: React.FC = () => {
     exportClientsToPDF(filteredAndSortedClients, "clients-export");
     toast.success("Clients exported to PDF");
   };
+
+  if (isPending) {
+    return <Loader loadingText="Loading Clients" />;
+  }
 
   return (
     <div className="p-6 space-y-6">

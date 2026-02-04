@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 // import { useClients } from "@/context/ClientContext";
 // import { useAuth, USERS } from "@/context/AuthContext";
 import { Client, STAGES, User } from "@/types/crm";
@@ -54,6 +54,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { getAllUsers } from "@/app/actions/users";
 import Loader from "@/components/Loader";
+import {
+  MonthYearFilter,
+  MonthYearSelection,
+  matchesMonthYearFilter,
+} from "@/components/MonthYearFilter";
 
 const Clients: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,6 +70,11 @@ const Clients: React.FC = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [monthYearFilter, setMonthYearFilter] = useState<MonthYearSelection>({
+    month: null,
+    year: new Date().getFullYear(),
+  });
+
   const router = useRouter();
 
   const { data: USERS = [] } = useQuery({
@@ -118,20 +128,78 @@ const Clients: React.FC = () => {
     return <Loader loadingText="Loading Clients" />;
   }
 
-  const filteredClients = clients.filter((client) => {
-    const matchesSearch =
-      client?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchQuery.toLowerCase());
+  // const handleSort = (field: SortField) => {
+  //   setSortConfig((prev) => ({
+  //     field,
+  //     direction:
+  //       prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+  //   }));
+  // };
+  // const getSortIcon = (field: SortField) => {
+  //   if (sortConfig.field !== field) {
+  //     return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+  //   }
+  //   return sortConfig.direction === "asc" ? (
+  //     <ArrowUp className="w-4 h-4 ml-1" />
+  //   ) : (
+  //     <ArrowDown className="w-4 h-4 ml-1" />
+  //   );
+  // };
+  const filteredAndSortedClients = useMemo(() => {
+    let result = clients.filter((client) => {
+      const matchesSearch =
+        client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStage = stageFilter === "all" || client.stage === stageFilter;
-    const matchesAssignee =
-      assigneeFilter === "all" || client.userId === assigneeFilter;
+      const matchesStage =
+        stageFilter === "all" || client.stage === stageFilter;
+      const matchesAssignee =
+        assigneeFilter === "all" || client.userId === assigneeFilter;
+      const matchesMonthYear = matchesMonthYearFilter(
+        new Date(client.updatedAt ?? client.createdAt),
+        monthYearFilter,
+      );
 
-    // console.log("🔴🔴🔴", client.userId, assigneeFilter);
+      return (
+        matchesSearch && matchesStage && matchesAssignee && matchesMonthYear
+      );
+    });
+    // Sort the results
+    // result.sort((a, b) => {
+    //   const direction = sortConfig.direction === "asc" ? 1 : -1;
 
-    return matchesSearch && matchesStage && matchesAssignee;
-  });
+    //   switch (sortConfig.field) {
+    //     case "name":
+    //       return direction * a.name.localeCompare(b.name);
+    //     case "company":
+    //       return direction * a.company ? a.company.localeCompare(b.company) : "";
+    //     case "dealValue":
+    //       return direction * (a.deal_value - b.deal_value);
+    //     case "stage":
+    //       const stageOrder = STAGES.map((s) => s.id);
+    //       return (
+    //         direction *
+    //         (stageOrder.indexOf(a.stage) - stageOrder.indexOf(b.stage))
+    //       );
+    //     case "updatedAt":
+    //       return (
+    //         direction *
+    //         (new Date(a.updatedAt ?? a.createdAt).getTime() - new Date(b.updatedAt ?? a.createdAt).getTime())
+    //       );
+    //     default:
+    //       return 0;
+    //   }
+    // });
+    return result;
+  }, [
+    clients,
+    searchQuery,
+    stageFilter,
+    assigneeFilter,
+    monthYearFilter,
+    // sortConfig,
+  ]);
 
   const getStageConfig = (stage: string) => {
     return STAGES.find((s) => s.id === stage) || STAGES[0];
@@ -172,12 +240,12 @@ const Clients: React.FC = () => {
   const { exportClientsToCSV, exportClientsToPDF } = useExport();
 
   const handleExportCSV = () => {
-    exportClientsToCSV(filteredClients, "clients-export");
+    exportClientsToCSV(filteredAndSortedClients, "clients-export");
     toast.success("Clients exported to CSV");
   };
 
   const handleExportPDF = () => {
-    exportClientsToPDF(filteredClients, "clients-export");
+    exportClientsToPDF(filteredAndSortedClients, "clients-export");
     toast.success("Clients exported to PDF");
   };
 
@@ -229,7 +297,11 @@ const Clients: React.FC = () => {
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <MonthYearFilter
+            value={monthYearFilter}
+            onChange={setMonthYearFilter}
+          />
           <Select value={stageFilter} onValueChange={setStageFilter}>
             <SelectTrigger className="w-[160px]">
               <Filter className="w-4 h-4 mr-2" />
@@ -278,7 +350,7 @@ const Clients: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.length === 0 ? (
+            {filteredAndSortedClients.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -288,7 +360,7 @@ const Clients: React.FC = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map((client) => {
+              filteredAndSortedClients.map((client) => {
                 const stageConfig = getStageConfig(client.stage);
                 return (
                   <TableRow
@@ -403,12 +475,12 @@ const Clients: React.FC = () => {
       {/* Summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Showing {filteredClients.length} of {clients.length} clients
+          Showing {filteredAndSortedClients.length} of {clients.length} clients
         </span>
         <span>
           Total Pipeline:{" "}
           {formatCurrency(
-            filteredClients.reduce((sum, c) => sum + c.deal_value, 0),
+            filteredAndSortedClients.reduce((sum, c) => sum + c.deal_value, 0),
           )}
         </span>
       </div>

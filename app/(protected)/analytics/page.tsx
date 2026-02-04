@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-// import { useClients } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -52,6 +51,11 @@ import { useRouter } from "next/navigation";
 import Loader from "@/components/Loader";
 import ErrorCard from "@/components/ErrorCard";
 import { getAllUsers } from "@/app/actions/users";
+import {
+  MonthYearFilter,
+  MonthYearSelection,
+  matchesMonthYearFilter,
+} from "@/components/MonthYearFilter";
 
 const STAGE_COLORS: Record<Stage, string> = {
   lead: "#3b4a5a",
@@ -64,7 +68,10 @@ const STAGE_COLORS: Record<Stage, string> = {
 };
 
 const Analytics: React.FC = () => {
-  // const { clients } = useClients();
+  const [monthYearFilter, setMonthYearFilter] = useState<MonthYearSelection>({
+    month: null,
+    year: new Date().getFullYear(),
+  });
   const router = useRouter();
   const {
     data: clients = [],
@@ -114,12 +121,21 @@ const Analytics: React.FC = () => {
     },
   });
 
+  const filteredClients = useMemo(() => {
+    return clients.filter((client) =>
+      matchesMonthYearFilter(
+        new Date(client.updatedAt || client.createdAt),
+        monthYearFilter,
+      ),
+    );
+  }, [clients, monthYearFilter]);
+
   // Calculate metrics
   const metrics = useMemo(() => {
-    const totalDeals = clients.length;
-    const wonDeals = clients.filter((c) => c.stage === "won");
-    const lostDeals = clients.filter((c) => c.stage === "lost");
-    const activeDeals = clients.filter(
+    const totalDeals = filteredClients.length;
+    const wonDeals = filteredClients.filter((c) => c.stage === "won");
+    const lostDeals = filteredClients.filter((c) => c.stage === "lost");
+    const activeDeals = filteredClients.filter(
       (c) => !["won", "lost"].includes(c.stage),
     );
 
@@ -127,7 +143,7 @@ const Analytics: React.FC = () => {
     const pipelineValue = activeDeals.reduce((sum, c) => sum + c.deal_value, 0);
     const avgDealSize =
       totalDeals > 0
-        ? clients.reduce((sum, c) => sum + c.deal_value, 0) / totalDeals
+        ? filteredClients.reduce((sum, c) => sum + c.deal_value, 0) / totalDeals
         : 0;
     const winRate =
       wonDeals.length + lostDeals.length > 0
@@ -144,26 +160,26 @@ const Analytics: React.FC = () => {
       lostCount: lostDeals.length,
       activeCount: activeDeals.length,
     };
-  }, [clients]);
+  }, [filteredClients]);
 
   // Stage distribution data for pie chart
   const stageDistribution = useMemo(() => {
     return STAGES.map((stage) => ({
       name: stage.label,
-      value: clients.filter((c) => c.stage === stage.id).length,
+      value: filteredClients.filter((c) => c.stage === stage.id).length,
       color: STAGE_COLORS[stage.id],
     })).filter((item) => item.value > 0);
-  }, [clients]);
+  }, [filteredClients]);
 
   const { exportAnalyticsToCSV, exportAnalyticsToPDF } = useExport();
 
   const stageDistributionExport = useMemo(() => {
     return STAGES.map((stage) => ({
       name: stage.label,
-      value: clients.filter((c) => c.stage === stage.id).length,
+      value: filteredClients.filter((c) => c.stage === stage.id).length,
       fill: STAGE_COLORS[stage.id],
     })).filter((item) => item.value > 0);
-  }, [clients]);
+  }, [filteredClients]);
 
   const handleExportCSV = () => {
     exportAnalyticsToCSV(
@@ -199,11 +215,11 @@ const Analytics: React.FC = () => {
       "negotiation",
       "won",
     ];
-    let total = clients.length;
+    let total = filteredClients.length;
 
     return stageOrder.map((stageId, index) => {
       const stageConfig = STAGES.find((s) => s.id === stageId)!;
-      const count = clients.filter((c) => {
+      const count = filteredClients.filter((c) => {
         const stageIndex = stageOrder.indexOf(c.stage as Stage);
         return stageIndex >= index && c.stage !== "lost";
       }).length;
@@ -216,18 +232,18 @@ const Analytics: React.FC = () => {
         fill: STAGE_COLORS[stageId],
       };
     });
-  }, [clients]);
+  }, [filteredClients]);
 
   // Revenue by stage
   const revenueByStage = useMemo(() => {
     return STAGES.map((stage) => ({
       stage: stage.label,
-      value: clients
+      value: filteredClients
         .filter((c) => c.stage === stage.id)
         .reduce((sum, c) => sum + c.deal_value, 0),
       fill: STAGE_COLORS[stage.id],
     }));
-  }, [clients]);
+  }, [filteredClients]);
 
   // Team performance data
   const teamPerformance = useMemo(() => {
@@ -236,7 +252,7 @@ const Analytics: React.FC = () => {
       { name: string; deals: number; value: number; won: number }
     >();
 
-    clients.forEach((client) => {
+    filteredClients.forEach((client) => {
       const existing = userMap.get(client.userId!) || {
         name: USERS?.find((prev) => prev.id === client.userId)?.name ?? "",
         deals: 0,
@@ -255,7 +271,7 @@ const Analytics: React.FC = () => {
       ...user,
       winRate: user.deals > 0 ? Math.round((user.won / user.deals) * 100) : 0,
     }));
-  }, [clients, USERS]);
+  }, [filteredClients, USERS]);
 
   // Mock monthly trend data
   const monthlyTrend = useMemo(() => {
@@ -276,17 +292,17 @@ const Analytics: React.FC = () => {
 
     return months.map((month, index) => ({
       month,
-      deals: clients.filter(
+      deals: filteredClients.filter(
         (c) => new Date(c.createdAt as Date).getMonth() === index,
       ).length,
       revenue: Math.floor(Math.random() * 50000) + 20000 + index * 10000,
-      won: clients.filter(
+      won: filteredClients.filter(
         (c) =>
           new Date(c.createdAt as Date).getMonth() === index &&
           c.stage === "won",
       ).length,
     }));
-  }, [clients]);
+  }, [filteredClients]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -342,7 +358,7 @@ const Analytics: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             Analytics Dashboard
@@ -351,24 +367,30 @@ const Analytics: React.FC = () => {
             Track your sales performance and trends
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              Export Report
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleExportCSV}>
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              Export as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleExportPDF}>
-              <FileText className="w-4 h-4 mr-2" />
-              Export as PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap gap-3">
+          <MonthYearFilter
+            value={monthYearFilter}
+            onChange={setMonthYearFilter}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Export Report
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Stat Cards */}

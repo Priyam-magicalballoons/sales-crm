@@ -18,6 +18,9 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,6 +63,13 @@ import {
   matchesMonthYearFilter,
 } from "@/components/MonthYearFilter";
 
+type SortField = "name" | "company" | "deal_value" | "stage" | "updatedAt";
+type SortDirection = "asc" | "desc";
+interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}
+
 const Clients: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
@@ -73,6 +83,10 @@ const Clients: React.FC = () => {
   const [monthYearFilter, setMonthYearFilter] = useState<MonthYearSelection>({
     month: null,
     year: new Date().getFullYear(),
+  });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: "updatedAt",
+    direction: "desc",
   });
 
   const router = useRouter();
@@ -128,23 +142,23 @@ const Clients: React.FC = () => {
     return <Loader loadingText="Loading Clients" />;
   }
 
-  // const handleSort = (field: SortField) => {
-  //   setSortConfig((prev) => ({
-  //     field,
-  //     direction:
-  //       prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-  //   }));
-  // };
-  // const getSortIcon = (field: SortField) => {
-  //   if (sortConfig.field !== field) {
-  //     return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
-  //   }
-  //   return sortConfig.direction === "asc" ? (
-  //     <ArrowUp className="w-4 h-4 ml-1" />
-  //   ) : (
-  //     <ArrowDown className="w-4 h-4 ml-1" />
-  //   );
-  // };
+  const handleSort = (field: SortField) => {
+    setSortConfig((prev) => ({
+      field,
+      direction:
+        prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+  const getSortIcon = (field: SortField) => {
+    if (sortConfig.field !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="w-4 h-4 ml-1" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1" />
+    );
+  };
   const filteredAndSortedClients = useMemo(() => {
     let result = clients.filter((client) => {
       const matchesSearch =
@@ -166,31 +180,30 @@ const Clients: React.FC = () => {
       );
     });
     // Sort the results
-    // result.sort((a, b) => {
-    //   const direction = sortConfig.direction === "asc" ? 1 : -1;
+    result.sort((a, b) => {
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
 
-    //   switch (sortConfig.field) {
-    //     case "name":
-    //       return direction * a.name.localeCompare(b.name);
-    //     case "company":
-    //       return direction * a.company ? a.company.localeCompare(b.company) : "";
-    //     case "dealValue":
-    //       return direction * (a.deal_value - b.deal_value);
-    //     case "stage":
-    //       const stageOrder = STAGES.map((s) => s.id);
-    //       return (
-    //         direction *
-    //         (stageOrder.indexOf(a.stage) - stageOrder.indexOf(b.stage))
-    //       );
-    //     case "updatedAt":
-    //       return (
-    //         direction *
-    //         (new Date(a.updatedAt ?? a.createdAt).getTime() - new Date(b.updatedAt ?? a.createdAt).getTime())
-    //       );
-    //     default:
-    //       return 0;
-    //   }
-    // });
+      switch (sortConfig.field) {
+        case "name":
+          return direction * a.name!.localeCompare(b.name!);
+        case "deal_value":
+          return direction * (a.deal_value - b.deal_value);
+        case "stage":
+          const stageOrder = STAGES.map((s) => s.id);
+          return (
+            direction *
+            (stageOrder.indexOf(a.stage) - stageOrder.indexOf(b.stage))
+          );
+        case "updatedAt":
+          return (
+            direction *
+            (new Date(a.updatedAt ?? a.createdAt).getTime() -
+              new Date(b.updatedAt ?? a.createdAt).getTime())
+          );
+        default:
+          return 0;
+      }
+    });
     return result;
   }, [
     clients,
@@ -198,7 +211,7 @@ const Clients: React.FC = () => {
     stageFilter,
     assigneeFilter,
     monthYearFilter,
-    // sortConfig,
+    sortConfig,
   ]);
 
   const getStageConfig = (stage: string) => {
@@ -303,7 +316,7 @@ const Clients: React.FC = () => {
             onChange={setMonthYearFilter}
           />
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-40">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Stage" />
             </SelectTrigger>
@@ -319,7 +332,7 @@ const Clients: React.FC = () => {
 
           {/* {user?.role === "admin" && ( */}
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
             <SelectContent>
@@ -340,13 +353,45 @@ const Clients: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold">Client</TableHead>
+              <TableHead
+                className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center">
+                  Client
+                  {getSortIcon("name")}
+                </div>
+              </TableHead>
               <TableHead className="font-semibold">Contact</TableHead>
-              <TableHead className="font-semibold">Deal Value</TableHead>
-              <TableHead className="font-semibold">Stage</TableHead>
+              <TableHead
+                className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => handleSort("deal_value")}
+              >
+                <div className="flex items-center">
+                  Deal Value
+                  {getSortIcon("deal_value")}
+                </div>
+              </TableHead>
+              <TableHead
+                className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => handleSort("stage")}
+              >
+                <div className="flex items-center">
+                  Stage
+                  {getSortIcon("stage")}
+                </div>
+              </TableHead>
               <TableHead className="font-semibold">Assigned To</TableHead>
-              <TableHead className="font-semibold">Last Updated</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead
+                className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => handleSort("updatedAt")}
+              >
+                <div className="flex items-center">
+                  Last Updated
+                  {getSortIcon("updatedAt")}
+                </div>
+              </TableHead>
+              <TableHead className="w-15"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

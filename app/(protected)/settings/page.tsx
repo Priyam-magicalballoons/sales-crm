@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  User,
+  UserIcon,
   Bell,
   Shield,
   Palette,
@@ -25,27 +25,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { getCurrentUser } from "@/lib/helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { changePassword, updateUserProfile } from "@/app/actions/users";
+import {
+  changePassword,
+  createUser,
+  getAllUsers,
+  updateUserProfile,
+} from "@/app/actions/users";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useRouter } from "next/navigation";
+import { User } from "@/types/crm";
+import AddUserModal from "@/components/crm/AddUserModal";
 
 const Settings: React.FC = () => {
   const queryClient = useQueryClient();
@@ -63,6 +64,28 @@ const Settings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const router = useRouter();
+
+  const { data: USERS = [] } = useQuery({
+    queryKey: ["users"],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const res = (await getAllUsers()) as {
+        status: number;
+        message?: string;
+        users: User[];
+      };
+
+      if (res.status === 401) {
+        router.push("/login");
+      } else if (res.status !== 200) {
+        toast.message(res.message);
+      } else {
+        return res.users;
+      }
+    },
+  });
 
   const updateUserData = useMutation({
     mutationFn: async () => {
@@ -88,7 +111,7 @@ const Settings: React.FC = () => {
     onSuccess: (updatedUser) => {
       // Ensure cache is in sync with server
       toast.success("User updated");
-      queryClient.setQueryData(["current-user"], updatedUser);
+      queryClient.setQueryData(["current-user"], { name, email });
     },
   });
 
@@ -126,6 +149,12 @@ const Settings: React.FC = () => {
   const isAdmin = currentUser?.role === "ADMIN";
 
   const handleSaveProfile = () => {
+    if (!name || !email) {
+      return toast.error("kindly fill all the fields");
+    }
+    if (name === currentUser?.name && email === currentUser.email) {
+      return toast.error("Kindly make any changes in data to update");
+    }
     updateUserData.mutate();
   };
 
@@ -142,7 +171,7 @@ const Settings: React.FC = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="bg-muted/50 ">
           <TabsTrigger value="profile" className="gap-2 cursor-pointer">
-            <User className="w-4 h-4" />
+            <UserIcon className="w-4 h-4" />
             Profile
           </TabsTrigger>
           {/* {isAdmin && ( */}
@@ -151,6 +180,12 @@ const Settings: React.FC = () => {
             Security
           </TabsTrigger>
           {/* )} */}
+          {isAdmin && (
+            <TabsTrigger value="team" className="gap-2">
+              <Users className="w-4 h-4" />
+              Team
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Tab */}
@@ -171,14 +206,6 @@ const Settings: React.FC = () => {
                     {currentUser?.name?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {/* <div>
-                  <Button variant="outline" size="sm">
-                    Change Avatar
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JPG, PNG or GIF. Max size 2MB.
-                  </p>
-                </div> */}
               </div>
 
               <Separator />
@@ -383,7 +410,7 @@ const Settings: React.FC = () => {
         </TabsContent> */}
 
         {/* Team Tab (Admin only) */}
-        {/* {isAdmin && (
+        {isAdmin && (
           <TabsContent value="team">
             <Card>
               <CardHeader>
@@ -394,7 +421,10 @@ const Settings: React.FC = () => {
                       Manage your team and their permissions
                     </CardDescription>
                   </div>
-                  <Button className="gap-2">
+                  <Button
+                    className="gap-2"
+                    onClick={() => setIsAddUserModalOpen(true)}
+                  >
                     <Users className="w-4 h-4" />
                     Invite Member
                   </Button>
@@ -411,7 +441,7 @@ const Settings: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {MOCK_USERS.map((member) => (
+                    {USERS.map((member) => (
                       <TableRow key={member.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -427,7 +457,7 @@ const Settings: React.FC = () => {
                         <TableCell>
                           <Badge
                             variant={
-                              member.role === "admin" ? "default" : "secondary"
+                              member.role === "ADMIN" ? "default" : "secondary"
                             }
                           >
                             {member.role}
@@ -447,8 +477,12 @@ const Settings: React.FC = () => {
                 </Table>
               </CardContent>
             </Card>
+            <AddUserModal
+              open={isAddUserModalOpen}
+              onOpenChange={setIsAddUserModalOpen}
+            />
           </TabsContent>
-        )} */}
+        )}
 
         {/* Security Tab (Admin only) */}
         {/* {isAdmin && ( */}

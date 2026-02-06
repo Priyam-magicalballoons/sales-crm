@@ -99,7 +99,7 @@ const Login: React.FC = () => {
         </div>
 
         <p className="text-sidebar-foreground/50 text-sm">
-          © 2024 SalesPro CRM. All rights reserved.
+          © 2026 SalesPro CRM. All rights reserved.
         </p>
       </motion.div>
 
@@ -150,40 +150,6 @@ const Login: React.FC = () => {
               />
             </div>
 
-            {/* <div className="space-y-2">
-              <Label>Sign in as</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole("admin")}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    role === "admin"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="font-medium">Admin</div>
-                  <div className="text-xs text-muted-foreground">
-                    Full access
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("user")}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    role === "user"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <div className="font-medium">User</div>
-                  <div className="text-xs text-muted-foreground">
-                    Limited access
-                  </div>
-                </button>
-              </div>
-            </div> */}
-
             <Button
               type="submit"
               className="w-full h-12 text-base"
@@ -199,10 +165,6 @@ const Login: React.FC = () => {
               )}
             </Button>
           </form>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Demo mode: Click sign in to access the dashboard
-          </p>
         </div>
       </motion.div>
     </div>

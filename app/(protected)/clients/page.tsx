@@ -273,7 +273,7 @@ const Clients: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Download className="w-4 h-4" />
@@ -290,11 +290,11 @@ const Clients: React.FC = () => {
                 Export as PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
+          </DropdownMenu> */}
+          {/* <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Add Client
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -345,6 +345,24 @@ const Clients: React.FC = () => {
             </SelectContent>
           </Select>
           {/* )} */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
